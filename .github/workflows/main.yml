@@ -1,0 +1,19 @@
+  name: Deploy multi service application
+  on:
+    push:
+      branches:
+        - master
+
+  jobs:
+    build:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v2
+        - name: Build Client for tests
+          run: |
+            docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+            docker build -t eduardbatiushchenko/react-test -f ./client/Dockerfile.dev ./client
+        - name: Run tests
+          run:  docker run -e CI=true eduardbatiushchenko/react-test npm test
+
