@@ -44,7 +44,7 @@ const Fib = () => {
 
     fetchValues();
     fetchIndexes();
-  }, []);
+  }, [index]);
 
   return (
     <>

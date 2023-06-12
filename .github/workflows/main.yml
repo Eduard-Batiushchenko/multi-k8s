@@ -1,4 +1,4 @@
-  name: Deploy multi service application
+  name: Deploy multi service application test
   on:
     push:
       branches:
@@ -16,4 +16,33 @@
             docker build -t eduardbatiushchenko/react-test -f ./client/Dockerfile.dev ./client
         - name: Run tests
           run:  docker run -e CI=true eduardbatiushchenko/react-test npm test
+
+        - name: Production build
+          run: |
+            docker build -t eduardbatiushchenko/multi-client ./client
+            docker build -t eduardbatiushchenko/multi-nginx ./nginx
+            docker build -t eduardbatiushchenko/multi-server ./server
+            docker build -t eduardbatiushchenko/multi-worker ./worker
+            
+        - name: Push to docker hub
+          run: |
+            docker push eduardbatiushchenko/multi-client
+            docker push eduardbatiushchenko/multi-nginx
+            docker push eduardbatiushchenko/multi-server
+            docker push eduardbatiushchenko/multi-worker
+
+        - name: Generate deployment package
+          run: zip -r deploy.zip . -x '*.git*'
+
+        - name: Deploy to EB
+          uses: einaregilsson/beanstalk-deploy@v18
+          with:
+            aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            application_name: multi-container
+            environment_name: Multi-container-env
+            existing_bucket_name: elasticbeanstalk-us-east-1-790797343470
+            region: us-east-1
+            version_label: ${{ github.sha }}
+            deployment_package: deploy.zip
 

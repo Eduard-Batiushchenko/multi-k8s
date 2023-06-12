@@ -8,8 +8,8 @@ services:
     image: "redis:latest"
   api:
     build:
-      context: ./server
-      dockerfile: Dockerfile.dev
+      context: ../server
+      dockerfile: ../server/Dockerfile.dev
     volumes:
       - /app/node_modules
       - ./server:/app
@@ -25,15 +25,15 @@ services:
     environment:
       - WDS_SOCKET_PORT=0
     build:
-      dockerfile: Dockerfile.dev
-      context: ./client
+      dockerfile: ../client/Dockerfile.dev
+      context: ../client
     volumes:
       - /app/node_modules
       - ./client:/app
   worker:
     build:
-      dockerfile: Dockerfile.dev
-      context: ./worker
+      dockerfile: ../worker/Dockerfile.dev
+      context: ../worker
     volumes:
       - /app/node_modules
       - ./worker:/app
@@ -46,7 +46,7 @@ services:
       - client
     restart: always
     build:
-      dockerfile: Dockerfile.dev
-      context: ./nginx
+      dockerfile: nginx/Dockerfile.dev
+      context: nginx
     ports:
       - "3050:80"
