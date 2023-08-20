@@ -60,5 +60,5 @@
           run: |
             kubectl apply -f k8s
             kubectl set image deployments/client-deployment client=eduardbatiushchenko/multi-client-k8s-gh:${{env.SHA}}
-            kubectl set image deployments/client-deployment server=eduardbatiushchenko/multi-server-k8s-gh:${{env.SHA}}
-            kubectl set image deployments/client-deployment worker=eduardbatiushchenko/multi-worker-k8s-gh:${{env.SHA}}
+            kubectl set image deployments/server-deployment server=eduardbatiushchenko/multi-server-k8s-gh:${{env.SHA}}
+            kubectl set image deployments/worker-deployment worker=eduardbatiushchenko/multi-worker-k8s-gh:${{env.SHA}}
