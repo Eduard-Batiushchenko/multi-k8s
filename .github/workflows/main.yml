@@ -1,8 +1,10 @@
-  name: Deploy multi service application test
+  name: Deploy multi k8s
   on:
     push:
       branches:
         - master
+  env:
+    SHA: $(git rev-parse HEAD)
 
   jobs:
     build:
@@ -14,35 +16,49 @@
           run: |
             docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
             docker build -t eduardbatiushchenko/react-test -f ./client/Dockerfile.dev ./client
+
         - name: Run tests
           run:  docker run -e CI=true eduardbatiushchenko/react-test npm test
 
-        - name: Production build
-          run: |
-            docker build -t eduardbatiushchenko/multi-client ./client
-            docker build -t eduardbatiushchenko/multi-nginx ./nginx
-            docker build -t eduardbatiushchenko/multi-server ./server
-            docker build -t eduardbatiushchenko/multi-worker ./worker
-            
-        - name: Push to docker hub
-          run: |
-            docker push eduardbatiushchenko/multi-client
-            docker push eduardbatiushchenko/multi-nginx
-            docker push eduardbatiushchenko/multi-server
-            docker push eduardbatiushchenko/multi-worker
-
-        - name: Generate deployment package
-          run: zip -r deploy.zip . -x '*.git*'
-
-        - name: Deploy to EB
-          uses: einaregilsson/beanstalk-deploy@v18
+        - name: Set Service Key
+          uses: google-github-actions/auth@v0
           with:
-            aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            application_name: multi-container
-            environment_name: Multi-container-env
-            existing_bucket_name: elasticbeanstalk-us-east-1-790797343470
-            region: us-east-1
-            version_label: ${{ github.sha }}
-            deployment_package: deploy.zip
+            credentials_json: '${{ secrets.GKE_SA_KEY }}'
 
+        - name: Set Project
+          uses: google-github-actions/setup-gcloud@v0
+          with:
+           project_id: multy-k8s-396319
+
+        - name: Auth
+          run: |
+            gcloud --quiet auth configure-docker
+
+        - name: Get Credentials
+          uses: google-github-actions/get-gke-credentials@v0
+          with:
+           cluster_name: multi-cluster
+           location: us-central1-c
+
+        - name: Build
+          run: |
+            docker build -t eduardbatiushchenko/multi-client-k8s-gh:latest -t eduardbatiushchenko/multi-client-k8s-gh:${{env.SHA}} -f ./client/Dockerfile ./client
+            docker build -t eduardbatiushchenko/multi-server-k8s-gh:latest -t eduardbatiushchenko/multi-server-k8s-gh:${{env.SHA}} -f ./server/Dockerfile ./server
+            docker build -t eduardbatiushchenko/multi-worker-k8s-gh:latest -t eduardbatiushchenko/multi-worker-k8s-gh:${{env.SHA}} -f ./worker/DockerFile ./worker
+
+        - name: Push
+          run: |
+            docker push eduardbatiushchenko/multi-client-k8s-gh:latest
+            docker push eduardbatiushchenko/multi-server-k8s-gh:latest
+            docker push eduardbatiushchenko/multi-worker-k8s-gh:latest
+            
+            docker push eduardbatiushchenko/multi-client-k8s-gh:${{env.SHA}}
+            docker push eduardbatiushchenko/multi-server-k8s-gh:${{env.SHA}}
+            docker push eduardbatiushchenko/multi-worker-k8s-gh:${{env.SHA}}
+
+        - name: Apply
+          run: |
+            kubectl apply -f k8s
+            kubectl set image deployments/client-deployment client=eduardbatiushchenko/multi-client-k8s-gh:${{env.SHA}}
+            kubectl set image deployments/client-deployment server=eduardbatiushchenko/multi-server-k8s-gh:${{env.SHA}}
+            kubectl set image deployments/client-deployment worker=eduardbatiushchenko/multi-worker-k8s-gh:${{env.SHA}}
