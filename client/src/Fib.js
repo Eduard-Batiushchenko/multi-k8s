@@ -48,6 +48,7 @@ const Fib = () => {
 
   return (
     <>
+      <h1>It's kubernetes version</h1>
       <form onSubmit={handleSubmit}>
         <label>
           <input
